@@ -191,7 +191,7 @@ class ZhihuAccount(object):
         检查用户名和密码是否已输入，若无则手动输入
         """
         if not self.username:
-            self.username = input('请输入手机号：')
+            self.username = input('请输入邮箱：')
         if self.username.isdigit() and '+86' not in self.username:
             self.username = '+86' + self.username
 
@@ -202,7 +202,14 @@ class ZhihuAccount(object):
     def _encrypt(form_data: dict):
         with open('./encrypt.js') as f:
             js = execjs.compile(f.read())
-            return js.call('b', urlencode(form_data))
+            # 强制把execjs的执行环境设置为Node，默认为JScript
+            execjs.get("Node")
+            result = js.call('b', urlencode(form_data))
+            return result
+
+    @staticmethod
+    def _test():
+        print("this is test!")
 
 
 if __name__ == '__main__':
