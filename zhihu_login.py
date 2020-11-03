@@ -202,8 +202,8 @@ class ZhihuAccount(object):
     def _encrypt(form_data: dict):
         with open('./encrypt.js') as f:
             js = execjs.compile(f.read())
-            # 强制把execjs的执行环境设置为Node，默认为JScript
-            execjs.get("Node")
+            # 强制把execjs的执行环境设置为Node，默认为JScript，只要执行一次就可以，后面就都是Node环境了
+            # execjs.get("Node")
             result = js.call('b', urlencode(form_data))
             return result
 
