@@ -13,6 +13,7 @@ import threading
 import time
 from http import cookiejar
 from urllib.parse import urlencode
+from urllib.parse import quote
 
 import execjs
 import requests
@@ -63,7 +64,7 @@ class ZhihuAccount(object):
         if load_cookies and self.load_cookies():
             print('读取 Cookies 文件')
             if self.check_login():
-                print('登录成功')
+                print('读取Cookie，登录成功')           
                 return True
             print('Cookies 已过期')
 
@@ -93,7 +94,8 @@ class ZhihuAccount(object):
         if 'error' in resp.text:
             print(json.loads(resp.text)['error'])
         if self.check_login():
-            print('登录成功')
+            print('不读取Cookie，登录成功')
+            self._get_question("保温饭盒")
             return True
         print('登录失败')
         return False
@@ -198,6 +200,32 @@ class ZhihuAccount(object):
         if not self.password:
             self.password = input('请输入密码：')
 
+    def _get_question(self, hotWord):
+        question_url_prefix = "https://www.zhihu.com/api/v4/search_v3?t=general"
+        question_url_parm = "&correction=1&offset=0&limit=20&lc_idx=0&show_all_topics=0"
+        question_url = question_url_prefix + "&q=" + quote(hotWord) + question_url_parm
+
+        question_headers = {
+            'accept-encoding': 'gzip, deflate, br',
+            'referer': 'https://www.zhihu.com/search?type=content&q=' + quote(hotWord),
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36',
+            'x-api-version': '3.0.91',
+            "x-app-za": "OS=Web",
+            "accept-language": "zh-CN,zh;q=0.9",
+            "x-zse-83":"3_2.0"
+        }
+
+        # question_cookies = {
+        #     '_xsrf':requests.utils.dict_from_cookiejar(self.session.cookies)["_xsrf"],
+        #     '_zap':requests.utils.dict_from_cookiejar(self.session.cookies)["_zap"],
+        #     'z_c0':requests.utils.dict_from_cookiejar(self.session.cookies)["z_c0"],
+        #     'capsion_ticket':requests.utils.dict_from_cookiejar(self.session.cookies)["capsion_ticket"],
+        # }
+
+        resp = self.session.get(question_url, allow_redirects=False, headers = self.session.headers, cookies = self.session.cookies)
+        print (resp)
+        
+   
     @staticmethod
     def _encrypt(form_data: dict):
         with open('./encrypt.js') as f:
@@ -214,4 +242,4 @@ class ZhihuAccount(object):
 
 if __name__ == '__main__':
     account = ZhihuAccount('', '')
-    account.login(captcha_lang='en', load_cookies=True)
+    account.login(captcha_lang='en', load_cookies=False)
