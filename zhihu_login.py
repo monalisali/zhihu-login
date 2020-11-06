@@ -18,6 +18,10 @@ from urllib.parse import quote
 import execjs
 import requests
 from PIL import Image
+import configparser
+import urllib
+#from dto import xZse86Dto
+from dto.xZse86Dto import xZse86
 
 
 class ZhihuAccount(object):
@@ -224,14 +228,14 @@ class ZhihuAccount(object):
 
         resp = self.session.get(question_url, allow_redirects=False, headers = self.session.headers, cookies = self.session.cookies)
         print (resp)
-        
-   
+
+
     @staticmethod
     def _encrypt(form_data: dict):
         with open('./encrypt.js') as f:
             js = execjs.compile(f.read())
-            # 强制把execjs的执行环境设置为Node，默认为JScript
-            execjs.get("Node")
+            # 强制把execjs的执行环境设置为Node，默认为JScript，只要执行一次就可以，后面就都是Node环境了
+            # execjs.get("Node")
             result = js.call('b', urlencode(form_data))
             return result
 
@@ -240,6 +244,77 @@ class ZhihuAccount(object):
         print("this is test!")
 
 
+    
+    def _encryptXZse86Value(self):
+        config = configparser.ConfigParser()
+        config.read("Config.ini", encoding="utf-8")
+        xZse86List = self._combineXZse86String()
+        result = []
+        xZse86Prefix = config.get("XZse86","XZse86Prefix")
+  
+        #读取encrypt.js文件并进行加密
+        with open('./encrypt.js') as f:
+            js = execjs.compile(f.read())
+            # 强制把execjs的执行环境设置为Node，默认为JScript，只要执行一次就可以，后面就都是Node环境了
+            # execjs.get("Node")
+            for index in range(len(xZse86List)):
+                obj = xZse86List[index]
+                hmd5 = hashlib.md5(obj.originStr.encode("utf-8"))
+                obj.md5 = hmd5.hexdigest()
+                obj.xZse86Val = js.call('b', obj.md5)
+                crt86Dto = xZse86(hotword = obj.hotword,xZse86Val = xZse86Prefix + obj.xZse86Val)
+                result.append(crt86Dto)
+
+            print("xZse86 加密完成")
+
+        #把结果写入文件
+        with open(r'./output/xZse86Result.json', mode = "w", encoding="utf-8") as w:
+            jsonStr = json.dumps([ob.__dict__ for ob in result],ensure_ascii=False)
+            #format_str = self._format_86Val_String(jsonStr)
+            json.dump(jsonStr,w,ensure_ascii=False)
+            print("xZse86 写入文件完成")
+                                            
+            return result
+     
+    
+    def _combineXZse86String(self):
+        """
+        用 XZse83,requestUrl, refer, cookie中的dc0的值来拼接待加密的字符串
+        :return: str
+        """
+        config = configparser.ConfigParser()
+        config.read("Config.ini", encoding="utf-8")
+        xZse83 = config.get("XZse86", "XZse83")
+        requestUrlPrefix = config.get("XZse86","requestUrlPrefix")
+        requestUrlSuffix = config.get("XZse86","requestUrlSuffix")
+        refer = config.get("XZse86","refer")
+        cookie_dc0 = config.get("XZse86","cookie_dc0")
+        
+
+        with open("hotWordsToQuestion.txt", "r", encoding="utf-8") as hot_word:
+            lines = hot_word.readlines()
+            howWordsList = []
+            combineValue = []           
+            for index in range(len(lines)):
+                howWordsList.append(lines[index].rstrip())
+
+            for index in range(len(howWordsList)):
+                encodekey = urllib.parse.quote(howWordsList[index])
+                s = xZse83 + "+" + requestUrlPrefix + encodekey + requestUrlSuffix + "+" + refer + encodekey + "+" + cookie_dc0
+                dto = xZse86(hotword = howWordsList[index],originStr = s)
+                combineValue.append(dto)
+                          
+            return combineValue
+    
+    def _format_86Val_String(self,originStr):
+        result = ""
+        result = originStr.replace("\\\"","\"")
+        return result
+
+    
+    
+	         	        
 if __name__ == '__main__':
     account = ZhihuAccount('', '')
-    account.login(captcha_lang='en', load_cookies=False)
+    account._encryptXZse86Value()
+    #account.login(captcha_lang='en', load_cookies=True)
