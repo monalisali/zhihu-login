@@ -255,6 +255,7 @@ class ZhihuAccount(object):
         #读取encrypt.js文件并进行加密
         with open('./encrypt.js') as f:
             js = execjs.compile(f.read())
+            print("一共需要加密：" + str(len(xZse86List)) + "个")
             # 强制把execjs的执行环境设置为Node，默认为JScript，只要执行一次就可以，后面就都是Node环境了
             # execjs.get("Node")
             for index in range(len(xZse86List)):
@@ -264,6 +265,7 @@ class ZhihuAccount(object):
                 obj.xZse86Val = js.call('b', obj.md5)
                 crt86Dto = xZse86(hotword = obj.hotword,xZse86Val = xZse86Prefix + obj.xZse86Val)
                 result.append(crt86Dto)
+                print("第" + str(index + 1) + "个完成：" + obj.hotword)
 
             print("xZse86 加密完成")
 
